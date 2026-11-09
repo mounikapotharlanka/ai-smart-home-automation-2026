@@ -1,0 +1,166 @@
+
+{
+  "name": "AI Smart Home Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "36d9fe13-867b-443e-b7d2-178b3fc13aa6",
+      "name": "When chat message received",
+      "webhookId": "42c71505-28fc-46fe-a9c0-a8e8ad6d6e58"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful and intelligent AI Home Automation Assistant. Your job is to control the smart bulb and check its current status using ThingSpeak.\n\nYou have access to two tools:\n1. control_bulb\n2. get_bulb_status\n\n1. TURN ON THE BULB\n- If the user says Turn on the bulb, Switch on the light, or similar commands, call the control_bulb tool.\n- Pass bulb_status = 1.\n- Confirm that the bulb is ON only after receiving a successful response from ThingSpeak.\n\n2. TURN OFF THE BULB\n- If the user says Turn off the bulb, Switch off the light, or similar commands, call the control_bulb tool.\n- Pass bulb_status = 0.\n- Confirm that the bulb is OFF only after receiving a successful response from ThingSpeak.\n\n3. CHECK BULB STATUS\n- If the user asks Is my bulb ON or OFF? or What is the current bulb status?, call get_bulb_status.\n- Read the actual field1 value returned by ThingSpeak.\n- If field1 = 1, report that the bulb is ON.\n- If field1 = 0, report that the bulb is OFF.\n- Never guess the status.\n\n4. GENERAL RULES\n- Understand natural-language commands.\n- Do not call tools for unrelated questions.\n- Never claim an action was successful if the tool returns an error.\n- If a tool fails, clearly explain that the operation could not be completed.\n- Keep responses short, simple, and friendly.\n- Never invent ThingSpeak readings or results."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "f7d175f6-0b28-4ef6-8704-4c61a52d8003",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        208
+      ],
+      "id": "a462d2cb-4b80-4831-9fe0-a4db3c2ed203",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.thingspeak.com/update",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "YOUR_THINGSPEAK_WRITE_API_KEY"
+            },
+            {
+              "name": "field1",
+              "value": "{{ $fromAI('bulb_status', '1 for ON, 0 for OFF', 'number') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        416,
+        208
+      ],
+      "id": "3330d9f1-20d0-436d-885b-71e88501a882",
+      "name": "control_bulb"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        96,
+        224
+      ],
+      "id": "7a018298-78f9-44d3-87f9-40befc070fb3",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {
+        "url": "https://api.thingspeak.com/channels/3569649/fields/1.json?api_key=YOUR_THINGSPEAK_READ_API_KEY&results=2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        592,
+        208
+      ],
+      "id": "bd424a43-4a41-48f1-b7d8-3a45d3eb8f5d",
+      "name": "get_bulb_status"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "control_bulb": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_bulb_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}
